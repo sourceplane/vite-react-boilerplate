@@ -4,7 +4,7 @@
 |---|---|---|
 | VR0 — the spec | ✅ | the repository's first commit and VR-1 |
 | VR1 — the app on Workers | ✅ | VR-2 |
-| VR2 — a baseline | planned | VR-3 |
+| VR2 — a baseline | ✅ | VR-3, tagged `baseline-v1` |
 
 ## Departures from the upstream template
 

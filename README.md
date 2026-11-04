@@ -3,9 +3,10 @@
 Vercel's [Vite - React](https://github.com/vercel/examples/tree/main/framework-boilerplates/vite-react)
 template — create-vite's React and TypeScript welcome page, with the Vite and
 React logos, its counter and its HMR hint — on Vite 5 and React 18 as the
-template has them, running on **Cloudflare Workers + Static Assets**, deployed by
-[Orun](https://github.com/sourceplane/orun) to stage and prod on every merge.
-Packaging it as an Orun baseline is the next milestone (VR2).
+template has them, running on **Cloudflare Workers + Static Assets**, and
+packaged as an **Orun baseline**: one command takes a new Vite and React app
+from nothing to live on stage and prod, in its own repository, under its own
+name.
 
 Vite builds fully static: `tsc -b && vite build` writes the app's shell, its
 hashed JavaScript bundle and stylesheet and the React logo under `assets/`,
@@ -15,8 +16,53 @@ every page address is answered with the app, and a missing file is a 404. The
 welcome page, its styles and its entry do not change; the app's name moves
 into one module, which the page's heading and the tab's title read, and the
 template, which ships no tests, gains a Vitest spec of the page as it
-behaves. See [`specs/epics/vite-react-boilerplate`](specs/epics/vite-react-boilerplate/README.md)
+behaves. What the baseline adds is everything needed to make a copy of it
+somebody else's — built the way [cirrus-baseline](https://github.com/sourceplane/cirrus-baseline)
+is. See [`specs/epics/vite-react-boilerplate`](specs/epics/vite-react-boilerplate/README.md)
 for the design, the milestones and the as-built status.
+
+## Instantiating an app
+
+```bash
+git clone --depth 1 --branch <baseline-tag> https://github.com/sourceplane/vite-react-boilerplate
+cd vite-react-boilerplate
+orun new --blueprint repo-blueprint.yaml --out ~/sites/acme-app --run-hooks --resume \
+  --set reponame=acme-app --set productname="Acme App" \
+  --set githuborg=acme-inc --set subdomain=<workers-dev-subdomain>
+```
+
+Or, once the platform's registry lists it, from the Orun console (Baselines →
+`vite-react-boilerplate` → Build). Two phases — `01-product` (the repository
+created, then the whole app in one pull request, deployed to stage and prod
+and smoke-tested) and `03-docs` (the live deployment recorded) — each landing
+one pull request in the new repository. **[BOOTSTRAP.md](BOOTSTRAP.md)** is
+the operator guide; [docs/phases/](docs/phases/README.md) has a page per
+phase.
+
+The new repository receives the **app only** — the app and its tests, its
+CI, its tooling, a README of its own and its operating contract — renamed
+throughout to the app's name, repository and Cloudflare Worker. None of this
+repository's machinery ships.
+
+| What makes it a baseline | Where |
+|---|---|
+| The console card (inputs, secrets, programme) | `blueprint.yaml` |
+| The build document (modules, phases, hooks) | `repo-blueprint.yaml` |
+| This tree's identity, and the bootstrap's task contracts | `.baseline/` |
+| The rename engine | `tooling/rebrand/rebrand.mjs` |
+| The bootstrap's helpers (deferrals, redeploy marker, work-tree strip) | `tooling/bootstrap/` |
+| The deployment-record renderer | `hooks/render-deployment-docs.sh` |
+| The app's README and context pack | `.baseline/product/README.md`, `ai/context/` |
+| The baseline's tests: contract, leak, offline bootstrap, end to end | `testing/`, `.github/workflows/baseline.yml` |
+| Cutting a `baseline-vN` tag | `.github/workflows/tag.yml` |
+
+The framework's name is not the app's: Vite's and React's packages (`vite`,
+`@vitejs/plugin-react`, `react`, `react-dom`) never spell this repository's
+slug, so the rename engine has nothing of the framework's to mask. The app's
+display name is one literal, `SITE_NAME` in `apps/web/src/site.ts` (the
+template's own heading, `Vite + React`); the placement tier fails on any
+placed app that spells it anywhere else, or imports a module that is not
+React's, Vite's or the app's own.
 
 ## What is here (the app)
 
@@ -64,6 +110,8 @@ pnpm --filter @app/web preview    # wrangler dev over the built app and its Work
 | Workflow | What it runs | Ships to an app |
 |---|---|---|
 | `ci.yml` | the Orun pipeline, and the only workflow an app carries: `orun plan --changed`, then one job per lane. A pull request runs the verify lanes (the app built and dry-deployed per environment; the tests' `quick-check` lane installs and checks the package, it does not run them), except the bootstrap's own landings (`orun/BASE-*`), where `plan` alone is the check; a merge deploys stage → prod. It plans nothing while `intent.yaml` names the placeholder workspace `ws_CHANGE_ME`, as this repository does. A manual run (Orunbase's Deploy button, or Run workflow on `main`) plans the environment and components it names under the push-to-main trigger, so they deploy as a merge deploys them | yes |
+| `baseline.yml` | the baseline's own tiers: contract tests, the blueprint read by the pinned orun, the leak gate, the offline bootstrap, the app built in a staged job tree, dry-deployed and served | no |
+| `tag.yml` | cuts a `baseline-vN` tag (manual) | no |
 
 ## Credits
 
