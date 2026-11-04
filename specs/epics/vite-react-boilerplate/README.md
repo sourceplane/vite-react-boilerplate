@@ -10,7 +10,7 @@ landing.**
 
 | | |
 |---|---|
-| Status | In progress — VR0 on main |
+| Status | In progress — VR1 on main: the site runs on Workers |
 | Upstream | [vercel/examples](https://github.com/vercel/examples) `framework-boilerplates/vite-react` (MIT), at `de86723` (2026-10-16; the folder last changed in `76ab21c`, 2025-01-13): create-vite's React and TypeScript template |
 | Reference | [angular-boilerplate](https://github.com/sourceplane/angular-boilerplate) — the same static single-page app behind one Worker, the same 404 rule, its tests and its bootstrap; [astro-boilerplate](https://github.com/sourceplane/astro-boilerplate) — the same `<framework>-boilerplate` identity and rename rules |
 | Key | `VR` |
