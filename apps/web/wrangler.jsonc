@@ -1,0 +1,20 @@
+// The Worker and the static app `vite build` emits (dist). The app is a
+// single-page application: it renders in the browser and owns every page
+// address, so a navigation that matches no file is answered with
+// index.html (`single-page-application`) and the app renders. A request
+// that is not a navigation and matches no file reaches the Worker
+// (worker/index.ts): a missing script or image is a 404 there, and any other
+// address goes back to the assets, which answer with the app.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vite-react-boilerplate-web",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "observability": { "enabled": true }
+}

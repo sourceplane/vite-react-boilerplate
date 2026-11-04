@@ -1,0 +1,90 @@
+apiVersion: sourceplane.io/v1
+kind: Component
+metadata:
+  name: web
+  description: The Vite and React app (Vite 5 and React 18, built fully static and served as Cloudflare Workers + Static Assets behind one Worker with single-page-app routing, per environment)
+spec:
+  type: cloudflare-workers-assets-turbo
+  lifecycle: production
+  owner: platform
+  # Its pages, attached to it in the workspace's catalog: what the Docs
+  # library shows for it, and what the catalog's docs and runbook checks read.
+  # Generated from what this manifest and its sources declare.
+  docs:
+    overview: docs/overview.md
+    pages:
+      - { path: docs/architecture.md, role: architecture, title: Architecture }
+      - { path: docs/runbook.md, role: runbook, title: Runbook }
+  # `app`, not `web`: a domain and a component share one name space in the
+  # catalog, and a domain called `web` hid this component from it.
+  domain: app
+  path: apps/web
+  # Its own lane per environment: the app's build is the longest job in the
+  # plan, and a shared lane would wait on it.
+  lane: isolated
+  subscribe:
+    environments:
+      - name: dev
+        profile: verify
+      - name: stage
+        profile: verify
+        profileRules:
+          - profile: deploy
+            when:
+              triggerRef: github-push-main
+      - name: prod
+        profile: verify
+        profileRules:
+          - profile: deploy
+            when:
+              triggerRef: github-push-main
+  parameters:
+    nodeVersion: "22"
+    pnpmVersion: "10.12.1"
+
+    workspaceDir: ../..
+    appDir: .
+
+    turboFilter: "@app/web"
+    # The config the dry run and the deploy hand to wrangler: the Worker
+    # (worker/index.ts) and the static build in dist as its assets,
+    # with single-page-app routing. The app builds fully static, so there is
+    # no adapter and no generated config — this committed file is the one
+    # wrangler deploys.
+    wranglerConfig: wrangler.jsonc
+
+    # `vite build` (after `tsc -b`) writes index.html, the hashed JavaScript
+    # and CSS bundles and the React logo under assets/, and the Vite logo to
+    # dist.
+    # The Worker is a source file wrangler bundles at deploy; the lane checks
+    # it exists after the build like any entry.
+    workerEntrypoint: worker/index.ts
+    assetsDir: dist
+
+    # Per-env worker name: vite-react-boilerplate-web-{dev,stage,prod}.
+    workerName: vite-react-boilerplate-web
+    environmentAwareWorkerName: true
+
+    # The account's workers.dev subdomain; exported to the smoke step as
+    # ${WORKERS_DEV_SUBDOMAIN} and used to build ${DEPLOYED_URL}.
+    workersDevSubdomain: your-workers-subdomain
+
+    installCommand: pnpm install --frozen-lockfile
+    # The app writes no absolute URL (it renders in the browser, from the
+    # origin it was loaded from), so the build takes no origin and is the same
+    # for every environment.
+    buildCommand: pnpm exec turbo run build --filter=@app/web
+
+    # Smoke: the home page is the app's shell (index.html with its root
+    # <div>), the bundle it loads is served and carries the template's
+    # counter ("count is" — not the site's name, which is the owner's to
+    # change), a deep link answers with the same shell (the app renders in
+    # the browser), and a missing file is a 404 rather than the app's page
+    # (the Worker's rule). Each response is buffered before grep so an early
+    # match cannot SIGPIPE curl.
+    smokeCommand: "html=$(curl -sfL \"${DEPLOYED_URL}/\") && echo \"${html}\" | grep -q '<div id=\"root\"></div>' && main=$(echo \"${html}\" | grep -oE 'assets/index-[A-Za-z0-9_-]+[.]js' | head -n 1) && test -n \"${main}\" && js=$(curl -sfL \"${DEPLOYED_URL}/${main}\") && echo \"${js}\" | grep -q 'count is' && deep=$(curl -sfL \"${DEPLOYED_URL}/some/deep/link\") && echo \"${deep}\" | grep -q '<div id=\"root\"></div>' && test \"$(curl -s -o /dev/null -w '%{http_code}' \"${DEPLOYED_URL}/no-such-file.js\")\" = 404"
+  labels:
+    team: platform
+    layer: delivery
+    surface: web
+    runtime: cloudflare
