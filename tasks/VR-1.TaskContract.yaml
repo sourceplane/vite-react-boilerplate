@@ -1,0 +1,15 @@
+apiVersion: orun.io/v1
+kind: TaskContract
+metadata:
+  name: VR-1
+  title: "The spec"
+spec:
+  goal: The vite-react-boilerplate repository is born with its intent, CI, tooling and spec index, and the vite-react-boilerplate epic — declaration, doc set and task contracts — is on main
+  affects:
+    - specs/epics/vite-react-boilerplate
+    - specs/epics/README.md
+    - tasks
+  doneWhen:
+    - epic.yaml, README, design, implementation plan, risks and status are on main
+    - the three task contracts exist
+  gates: []
